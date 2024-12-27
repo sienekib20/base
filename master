@@ -1,0 +1,11 @@
+<?php
+
+use Kib\Console\Console;
+use Kib\Support\Env;
+
+// Inicializa o .env
+
+$env = Env::createImmutable(__DIR__);
+$env->load();
+
+Console::init($argv);
