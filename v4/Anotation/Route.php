@@ -10,6 +10,7 @@ class Route
     protected static $routes = [];
     protected static $names = [];
     protected static $middleware = null;
+    protected static $prefix = null;
 
     public static function __callStatic($name, $arguments)
     {
@@ -37,12 +38,36 @@ class Route
         self::$middleware = null;
     }
 
+    public static function prefixRoutes($prefix, $callback)
+    {
+        self::$prefix = $prefix;
+        if (!is_callable($callback)) {
+            die('O Segundo parâmetro de restrictedRoutes deve ser um callable');
+        }
+        $callback();
+        self::$prefix = null;
+    }
+
     // Registra uma rota
     public static function add($method, $uri, $action)
     {
+        $prefix = self::$prefix;
+        $url = '';
+        if (!is_null($prefix)) {
+            if ($prefix[0] !== "/") {
+                throw new \Exception("O prefixo deve começar com uma /");
+            } else if (strpos($uri, "/") === 0 && strlen($uri) === 1) {
+                $url = $prefix;
+            } else {
+                $url = $prefix . $uri;
+            }
+        } else {
+            $url = $uri;
+        }
+
         self::$routes[] = (object) [
             'method' => strtoupper($method),
-            'uri' => $uri,
+            'uri' => $url,
             'action' => $action,
             'middleware' => self::$middleware,
         ];
@@ -92,6 +117,7 @@ class Route
         Request $request,
         ExceptionHandler $e
     ): void {
+
         if (!is_null($action['middleware'])) {
             $middleware = $action['middleware'];
             // foreach ($middlewares as $middleware) {

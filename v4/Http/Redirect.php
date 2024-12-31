@@ -8,7 +8,7 @@ class Redirect
     private $urlRoute;
     private $redirectWith = false;
 
-    private function __construct()
+    public function __construct()
     {
         // Garantir que a sessão esteja ativa
         if (session_status() == PHP_SESSION_NONE) {
@@ -61,10 +61,11 @@ class Redirect
     /**
      * Aplica o redirecionamento
      */
-    private function redirect($url)
+    public function redirect($url)
     {
         if (!headers_sent()) { // Garante que os headers não tenham sido enviados
-            header("Location: $url");
+
+            header("Location: /" . url_path() . "/$url");
             exit();
         } else {
             // Em caso de headers já enviados, usar JavaScript como fallback

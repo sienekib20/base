@@ -204,9 +204,31 @@ class Request
     }
 
     // Retorna o URI da requisição
+    // public function uri()
+    // {
+    //     return $this->serverParams['REQUEST_URI'];
+    // }
+
     public function uri()
     {
-        return $this->serverParams['REQUEST_URI'];
+        $uri = $this->serverParams['REQUEST_URI'];
+
+        // Remove tudo após o '#'
+        if (strpos($uri, '#') !== false) {
+            $uri = explode('#', $uri)[0];
+        }
+
+        // Remove os parâmetros de consulta, se necessário
+        if (strpos($uri, '?') !== false) {
+            $uri = explode('?', $uri)[0];
+        }
+
+        return $uri;
+    }
+
+    public function path()
+    {
+        return explode("/", trim(str_replace(url_path(), '', $_SERVER['REQUEST_URI']), '/'));
     }
 
     public function isGet()

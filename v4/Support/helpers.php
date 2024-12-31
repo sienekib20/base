@@ -183,7 +183,7 @@ if (!function_exists("url")) {
         }
 
         if ($route == "/") {
-            return base_path();
+            return "/" . url_path();
         }
         $route = str_replace(".", "/", $route);
 
@@ -196,6 +196,14 @@ if (!function_exists("url")) {
             }
         }
 
-        return base_path() . "/$route";
+        return "/" . url_path() . "/$route";
+    }
+}
+
+
+if (!function_exists('import')) {
+    function import($file)
+    {
+        require base_path() . "/" . str_replace('.', DIRECTORY_SEPARATOR, $file) . ".php";
     }
 }
