@@ -2,6 +2,8 @@
 
 namespace Kib\Support;
 
+use App\Models\User;
+
 class Auth
 {
     protected $userModel;
@@ -9,9 +11,9 @@ class Auth
     protected $tokenKey;
     protected $tokenExpirationTime; // tempo de expiração do token em segundos
 
-    public function __construct($userModel)
+    public function __construct()
     {
-        $this->userModel = $userModel;
+        $this->userModel = new User();
         $this->sessionKey = config('auth.sessionKey', 'userId');
         $this->tokenKey = 'auth_token'; // chave para armazenar o token na sessão
         $this->tokenExpirationTime = 3600; // 1 hora, você pode ajustar conforme necessário
@@ -23,11 +25,11 @@ class Auth
 
     public function attempt($email, $password)
     {
-        $user = $this->userModel->findByEmail($email);
+        $user = $this->userModel; //->findByEmail($email);
 
         if ($user && password_verify($password, $user['password'])) {
             $token = $this->generateToken();
-            $this->login($user, $token);
+            $this->login($user ?? [], $token);
             return $token;
         }
 
@@ -52,7 +54,7 @@ class Auth
     public function user()
     {
         if ($this->check()) {
-            return $_SESSION[$this->sessionKey];
+            return (object) $_SESSION[$this->sessionKey];
         }
 
         return null;

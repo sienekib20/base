@@ -2,6 +2,8 @@
 
 namespace Kib\Http;
 
+use Kib\Anotation\Route;
+
 class Request
 {
     // Armazena todos os dados da requisição (GET, POST, etc.)
@@ -23,18 +25,31 @@ class Request
         $this->post = $_POST ?? [];
         $this->files = $files;
 
+        $this->setDataFromJson();
+        $this->setRequestData();
+    }
+
+    public function setDataFromAjax()
+    {
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+            $this->bind($_REQUEST);
+        }
+    }
+
+    public function setDataFromJson()
+    {
         if ($this->isJson()) {
             $input = file_get_contents('php://input');
             $methods = $this->serverParams()['REQUEST_METHOD'];
-            if (in_array($methods, ['POST', 'PUT'])) {
+            if (in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT'])) {
+                $_REQUEST = json_decode($input, true) ?? [];
                 $this->post = json_decode($input, true) ?? [];
                 $this->postParams = json_decode($input, true) ?? [];
             } else {
                 $this->queryParams = json_decode($input, true) ?? [];
             }
+            $this->setRequestData();
         }
-
-        $this->setRequestData();
     }
 
     public function setRequestData()
@@ -176,9 +191,9 @@ class Request
     /**
      * Retorna todos os parâmetros POST da requisição.
      */
-    public function post()
+    public function post($key)
     {
-        return $this->postParams;
+        return $this->postParams[$key] ?? null;
     }
 
     /**
@@ -211,7 +226,7 @@ class Request
 
     public function uri()
     {
-        $uri = $this->serverParams['REQUEST_URI'];
+        $uri = $this->serverParams['REQUEST_URI'] ?? '/';
 
         // Remove tudo após o '#'
         if (strpos($uri, '#') !== false) {
@@ -219,16 +234,53 @@ class Request
         }
 
         // Remove os parâmetros de consulta, se necessário
-        if (strpos($uri, '?') !== false) {
+        else if (strpos($uri, '?') !== false) {
             $uri = explode('?', $uri)[0];
         }
+
+
 
         return $uri;
     }
 
     public function path()
     {
-        return explode("/", trim(str_replace(url_path(), '', $_SERVER['REQUEST_URI']), '/'));
+        $routes = Route::all();
+
+        $paths = explode("/", trim(str_replace(url_path(), '', $_SERVER['REQUEST_URI']), '/'));
+        $array = [];
+        foreach ($paths as $p) {
+            //if (is_numeric($p) || empty($this->prefix_replace($routes, $p))) {
+            if (is_numeric($p)) {
+                continue;
+            }
+            $array[] = $p;
+        }
+        return $array;
+    }
+
+    public function hasPrefix()
+    {
+        $requestUri = trim(str_replace(url_path(), '', $_SERVER['REQUEST_URI']), '/');
+        $path = explode("/", trim(str_replace(url_path(), '', $_SERVER['REQUEST_URI']), '/'));
+        $savedPath = $path;
+
+        foreach (Route::all() as $route) {
+            if ($route->uri == "/$requestUri") {
+                return !is_null($route->prefix) ? $route->prefix : '/';
+            }
+        }
+        return '/';
+    }
+
+    public function prefix_replace($routes, $item)
+    {
+        foreach ($routes as $route) {
+            if (strpos(ltrim($route->prefix, '/'), $item) === 0) {
+                return '';
+            }
+        }
+        return $item;
     }
 
     public function isGet()

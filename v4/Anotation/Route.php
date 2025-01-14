@@ -11,134 +11,161 @@ class Route
     protected static $names = [];
     protected static $middleware = null;
     protected static $prefix = null;
+    protected static $prefixArr = [];
 
+    // Handles static method calls for valid HTTP methods (GET, POST, PUT, DELETE, ANY)
     public static function __callStatic($name, $arguments)
     {
-        // Verifica se o método é válido (get, post, put, delete, any)
         $validMethods = ['get', 'post', 'put', 'delete', 'any'];
+        $method = strtolower($name);
 
-        if (in_array(strtolower($name), $validMethods)) {
-            // O primeiro argumento é o URI e o segundo é a ação
-            $method = strtolower($name);
+        if (in_array($method, $validMethods)) {
             $uri = $arguments[0];
             $action = $arguments[1];
-
-            // Adiciona a rota
-            self::add($method, $uri, $action);
+            self::addRoute($method, $uri, $action);
         }
     }
 
-    public static function restrictedRoutes($middle, $callback)
+    // Returns all registered routes
+    public static function getRoutes(): array
     {
-        self::$middleware = $middle;
+        return self::$routes;
+    }
+
+    // Defines restricted routes with middleware
+    public static function restrictedRoutes($middleware, $callback)
+    {
+        self::$middleware = $middleware;
+
         if (!is_callable($callback)) {
-            die('O Segundo parâmetro de restrictedRoutes deve ser um callable');
+            throw new \InvalidArgumentException('O segundo parâmetro de restrictedRoutes deve ser um callable');
         }
+
         $callback();
         self::$middleware = null;
     }
 
+    // Defines routes with a prefix
     public static function prefixRoutes($prefix, $callback)
     {
         self::$prefix = $prefix;
+
         if (!is_callable($callback)) {
-            die('O Segundo parâmetro de restrictedRoutes deve ser um callable');
+            throw new \InvalidArgumentException('O segundo parâmetro de prefixRoutes deve ser um callable');
         }
+
         $callback();
         self::$prefix = null;
     }
 
-    // Registra uma rota
-    public static function add($method, $uri, $action)
+    // Registers a route with a method, URI, action, middleware, and prefix
+    public static function addRoute($method, $uri, $action)
     {
-        $prefix = self::$prefix;
-        $url = '';
-        if (!is_null($prefix)) {
-            if ($prefix[0] !== "/") {
-                throw new \Exception("O prefixo deve começar com uma /");
-            } else if (strpos($uri, "/") === 0 && strlen($uri) === 1) {
-                $url = $prefix;
-            } else {
-                $url = $prefix . $uri;
-            }
-        } else {
-            $url = $uri;
-        }
+        $uri = '/' . ltrim($uri, '/');
+        $prefix = self::$prefix ? '/' . ltrim(self::$prefix, '/') : '';
 
         self::$routes[] = (object) [
             'method' => strtoupper($method),
-            'uri' => $url,
+            'uri' => $prefix . $uri,
             'action' => $action,
             'middleware' => self::$middleware,
+            'prefix' => self::$prefix,
         ];
+
+        error_log("Rota registrada: " . $method . " " . $prefix . $uri);
     }
 
-    // Resolve uma rota com base na requisição
-    public static function resolve(Request $request, $uri)
+
+    // Resolves a route based on the request URI and method
+    public static function resolve(Request $request, string $uri)
     {
         foreach (self::$routes as $route) {
-            if (strpos($request->method(), $route->method) === 0) {
+            // Aplica o prefixo ao padrão da URI
+            $pathPattern = preg_replace('/\/{(\w+)}/', '/(?<$1>[^/]+)', self::resolvePrefix(self::$routes, $route->uri));
+            $pathPattern = $pathPattern == '/' ? '/' : rtrim($pathPattern, '/');
 
-                $pathPattern = preg_replace('/\/{(\w+)}/', '/(?<$1>.*?)', $route->uri);
-                //echo '<pre>'; print_r($pathPattern); exit;
-                if (preg_match('#^' . $pathPattern . '$#', $uri, $matches)) {
-                    array_shift($matches);
-                    $request->bind($matches);
+            $matchUri = $uri === '/' ? '/' : rtrim($uri, '/');
 
-                    return [
-                        'action' => $route->action,
-                        'middleware' => $route->middleware
-                    ];
+            if (
+                preg_match('#^' . $pathPattern . '$#', $matchUri, $matches) &&
+                strtoupper($request->method()) === $route->method
+            ) {
+                array_shift($matches);
+                $request->bind($matches);
+
+                return [
+                    'action' => $route->action,
+                    'middleware' => $route->middleware,
+                ];
+            }
+        }
+        return null; // Rota não encontrada
+    }
+
+
+    // Resolves the route prefix if defined
+    private static function resolvePrefix($routes, $uri): string
+    {
+        if ($uri === '/') {
+            return $uri;
+        }
+
+        foreach ($routes as $route) {
+            if (!is_null($route->prefix) && $route->uri == $uri) {
+                if ($uri === '/') {
+                    return rtrim($uri, '/');
                 }
             }
         }
+
+        return $uri;
     }
 
-    // Retorna todas as rotas registradas
+    // Returns all registered routes
     public static function all()
     {
         return self::$routes;
     }
 
+    // Assigns a name to a route
     public static function name($uri, $name)
     {
         self::$names[$name] = $uri;
     }
 
-    // Obtém o nome da rota
+    // Retrieves a route name by its name
     public static function getName($name)
     {
-        return isset(self::$names[$name]) ? self::$names[$name] : null;
+        return self::$names[$name] ?? null;
     }
 
+    // Dispatches the route action, applies middleware, and handles exceptions
     public static function dispatcher(
         array $action,
         array $middlewares = [],
         Request $request,
         ExceptionHandler $e
     ): void {
-
         if (!is_null($action['middleware'])) {
-            $middleware = $action['middleware'];
-            // foreach ($middlewares as $middleware) {
-            // }
-
-            $middlewareInstance = new $middleware();
+            $middlewareInstance = new $action['middleware']();
             $middlewareInstance->handle($request);
         }
+
+
         try {
             list($controller, $method) = $action['action'];
+
             if (!class_exists($controller)) {
-                throw new \Exception('Class not found: ' . $controller);
+                throw new \Exception('Classe não encontrada: ' . $controller);
             }
+
             $controllerInstance = new $controller();
+
             if (!method_exists($controllerInstance, $method)) {
-                throw new \Exception('Method not found: ' . $method);
+                throw new \Exception('Método não encontrado: ' . $method);
             }
 
             $controllerInstance->$method($request);
-
-            return;
         } catch (\Exception $ex) {
             $e->handle($ex);
         }

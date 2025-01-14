@@ -1,6 +1,8 @@
 .env
-#.vscode
+.vscode
 *.zip
-#*.sql
-#assets/storage/*
-#storage/
+*.sql
+assets/storage/*
+storage/
+
+/vendor/

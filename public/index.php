@@ -5,7 +5,8 @@ use App\Http\Middlewares\AuthMiddleware;
 use Kib\Http\Request;
 
 // Carregando o autoload de classes
-require __DIR__ . '/../spr-4/autoload.php';
+// require __DIR__ . '/../spr-4/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 
 // Carregando o app
@@ -23,4 +24,3 @@ $app = Application::configure(dirname(__DIR__))
     ->create(Request::capture());
 
 $app->start();
-

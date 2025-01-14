@@ -1,0 +1,25 @@
+<?php
+
+use Kib\Orm\Schema;
+
+class Create\TableClass\Table
+{
+    public function up()
+    {
+        Schema::create("
+            CREATE TABLE IF NOT EXISTS `\TableName\` (
+                `\TableId\_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                -- add your sql here
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY(`\TableId\_id`)
+            ) ENGINE = INNODB CHARSET = utf8mb4;
+        ");
+    }
+
+
+    public function down()
+    {
+        Schema::dropIfExists('\TableName\');
+    }
+}

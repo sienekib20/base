@@ -34,13 +34,16 @@ class Response implements \Serializable
     public function json($data, $status = 200)
     {
         $data = !is_array($data) ? [$data] : $data;
-        $this->setStatus($status);
-        $this->addHeader('Content-Type', 'application/json');
+        try {
+            $this->setStatus($status);
+            $this->addHeader('Content-Type', 'application/json');
 
-        $this->addHeader("Access-Control-Allow-Origin", "*"); // Ou substitua * pela origem desejada
-        $this->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        $this->addHeader("Access-Control-Allow-Headers", "Content-Type");
-
+            $this->addHeader("Access-Control-Allow-Origin", "*"); // Ou substitua * pela origem desejada
+            $this->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+            $this->addHeader("Access-Control-Allow-Headers", "Content-Type");
+        } catch (\Exception) {
+            $this->setStatus(400);
+        }
         $this->setContent(json_encode($data));
         $this->send();
         return $this;

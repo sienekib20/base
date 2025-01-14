@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\Controller;
 use Kib\Anotation\Route;
+use Kib\Http\Navigation\Pathway;
 use Kib\Http\Request;
 use Kib\Http\Response;
 use Kib\Http\Redirect;
 use Kib\Sessions\SessionManager;
+use Kib\Support\Auth;
 
 if (!function_exists('config_path')) {
     function config_path()
@@ -205,5 +207,34 @@ if (!function_exists('import')) {
     function import($file)
     {
         require base_path() . "/" . str_replace('.', DIRECTORY_SEPARATOR, $file) . ".php";
+    }
+}
+
+
+if (!function_exists('pathway')) {
+    function pathway()
+    {
+        return (new Pathway());
+    }
+}
+
+if (!function_exists('auth')) {
+    function auth()
+    {
+        return (new Auth());
+    }
+}
+
+
+if (!function_exists('load_extensions')) {
+    function load_extensions()
+    {
+        if (!extension_loaded('gd')) {
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                dl('php_gd.dll');
+            } else {
+                dl('gd.so');
+            }
+        }
     }
 }

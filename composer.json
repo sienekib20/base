@@ -1,0 +1,24 @@
+{
+    "name": "siene/kibv4",
+    "description": "Mininal PHP Mvc Structure",
+    "require": {
+        "vlucas/phpdotenv": "^5.6",
+        "phpmailer/phpmailer": "^6.9",
+        "symfony/console": "^7.2"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Kib\\": "v4/",
+            "Factory\\": "database/"
+        }
+    },
+    "authors": [
+        {
+            "name": "sienekib20",
+            "email": "sienekib@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable"
+}

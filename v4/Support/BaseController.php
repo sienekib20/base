@@ -2,7 +2,9 @@
 
 namespace Kib\Support;
 
-class BaseController
+use Kib\Support\Engine;
+
+class BaseController extends Engine
 {
 
     private $layout = null;
@@ -10,6 +12,12 @@ class BaseController
     private $contentLayout = '';
 
     private $sectionTitle = '';
+
+    private $sections = [];
+
+    private $currentSection;
+
+    private $data;
 
     public function uploadImg($ficheiro, $fich, $target)
     {
@@ -58,23 +66,46 @@ class BaseController
         }
     }
 
-    public function yield($section, $value)
-    {
-        $this->sectionTitle = $section == 'title' ? $value : '';
-        return $this->sectionTitle;
-    }
+    // /**
+    //  * Init uma session
+    //  */
+    // public function start($section)
+    // {
+    //     $this->currentSection = $section;
+    //     ob_start();
+    // }
 
-    public function extends($layout, $params = [])
-    {
-        $this->layout = $layout;
-        $this->sectionTitle = $params['title'] ?? $this->sectionTitle;
-        $this->yield('title', $this->sectionTitle);
-    }
+    // /**
+    //  * Fim session
+    //  */
+    // public function end($section)
+    // {
+    //     $content = ob_get_contents();
+    //     $this->sections[$this->currentSection] = $content;
+    //     $this->currentSection = null;
+    // }
 
-    public function load()
-    {
-        echo $this->contentLayout;
-    }
+    /**
+     * Obtém o conteúdo de uma seção ou um valor padrão.
+     */
+    // public function yield($section, $default = '')
+    // {
+    //     // $this->sectionTitle = $section == 'title' ? $value : '';
+    //     return $this->sections[$section] ?? $default;
+    // }
+
+    // public function extends($layout, $params = [])
+    // {
+    //     $this->layout = $layout;
+    //     $this->data = $params;
+    //     // $this->sectionTitle = $params['title'] ?? $this->sectionTitle;
+    //     // $this->yield('title', $this->sectionTitle);
+    // }
+
+    // public function load()
+    // {
+    //     echo $this->contentLayout;
+    // }
 
     // Método para carregar uma visualização
     public function view($view, $data = [])
@@ -83,29 +114,32 @@ class BaseController
         $view = str_replace('.', DIRECTORY_SEPARATOR, $view);
         // Verifica se o arquivo de visualização exist
 
-        if (file_exists($path . $view . '.php')) {
-            // Requer o arquivo da visualização
-            ob_start();
-            extract($data);
-            require_once $path . $view . '.php';
-            $content = ob_get_contents();
-            $this->contentLayout = $content;
-            ob_end_clean();
 
-            if ($this->layout != null) {
-                if (!$this->layoutExists($this->layout)) {
-                    return $this->loadErrorView('error.404', ['message' => 'O Layout indicado não existe!']);
-                }
-                ob_start();
-                require_once $this->layoutFile($this->layout);
-                $contentLayout = ob_get_contents();
-                ob_end_clean();
-                echo $contentLayout;
-                $this->layout = null;
-                return;
-            }
-            echo $content;
-            return;
+        if (file_exists($path . $view . '.php')) {
+            return $this->render($path . $view . '.php', $data);
+            // Requer o arquivo da visualização
+            // ob_start();
+            // extract($data);
+            // require_once $path . $view . '.php';
+            // $content = ob_get_contents();
+            // $this->contentLayout = $content;
+            // ob_end_clean();
+
+            // if ($this->layout != null) {
+            //     extract($data);
+            //     if (!$this->layoutExists($this->layout)) {
+            //         return $this->loadErrorView('error.404', ['message' => 'O Layout indicado não existe!']);
+            //     }
+            //     ob_start();
+            //     require_once $this->layoutFile($this->layout);
+            //     $contentLayout = ob_get_contents();
+            //     ob_end_clean();
+            //     echo $contentLayout;
+            //     $this->layout = null;
+            //     return;
+            // }
+            // echo $content;
+            // return;
         } else {
 
             die('A view indicada não existe!');

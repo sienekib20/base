@@ -51,7 +51,7 @@ class DB
             if (!is_array($bind)) {
                 die('O parâmetro do Insert deve ser um Array');
             }
-
+            self::$conn->beginTransaction();
             $columns = implode(', ', array_keys($bind));
             $placeholders = rtrim(str_repeat('?, ', count($bind)), ', ');
 
@@ -59,9 +59,10 @@ class DB
 
             $stmt = self::$conn->prepare($sql);
             $stmt->execute(array_values($bind));
-
+            self::$conn->commit();
             return self::lastInsertedId();
         } catch (\PDOException $e) {
+            self::$conn->rollBack();
             die('Erro ao inserir: ' . $e->getMessage());
         }
     }
@@ -108,12 +109,17 @@ class DB
         }
     }
 
-    private static function disableForeignKeyChecks()
+    public static function execCommand($sql)
+    {
+        self::$conn->exec($sql);
+    }
+
+    public static function disableForeignKeyChecks()
     {
         self::$conn->exec('SET foreign_key_checks = 0');
     }
 
-    private static function enableForeignKeyChecks()
+    public static function enableForeignKeyChecks()
     {
         self::$conn->exec('SET foreign_key_checks = 1');
     }
@@ -236,5 +242,12 @@ class DB
         } catch (\PDOException $e) {
             die('Erro na consulta: ' . $e->getMessage());
         }
+    }
+
+    public static function checkDatabase()
+    {
+        $pdo = self::query('SHOW TABLES') ?? [];
+
+        return count($pdo) > 0;
     }
 }
